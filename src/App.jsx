@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from './authConfig';
@@ -15,12 +16,8 @@ const App = () => {
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
 
-  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
-    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
-    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
-    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
-  const months = ['January', 'February', 'March', "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
+  const entityOptions = [1207, 3188, 1012];
+  const months = ['January', 'February', 'March'];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -77,9 +74,7 @@ const App = () => {
 
     const res = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
       body: file
     });
 
@@ -89,7 +84,7 @@ const App = () => {
       setData(updated);
       alert('✅ Upload complete!');
     } else {
-      alert('Upload failed.');
+      alert('❌ Upload failed.');
     }
   };
 
@@ -219,8 +214,6 @@ const App = () => {
     <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
       {view === 'signin' && (
         <div style={{ textAlign: 'center', marginTop: '10%' }}>
-          <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo"
-               style={{ width: '400px', marginBottom: '1rem' }} />
           <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
           <button onClick={signIn} style={{
             backgroundColor: '#007C91', color: 'white', padding: '0.8rem 2rem', borderRadius: '6px'
@@ -233,6 +226,7 @@ const App = () => {
       {view === 'home' && (
         <div>
           <h2 style={{ color: '#007C91' }}>Welcome</h2>
+          <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
           {['cash_app', 'po_pod', 'follow_up'].map(s => (
             <button key={s} onClick={() => handleSectionClick(s)} style={{
               margin: '1rem', padding: '1rem 2rem', backgroundColor: '#007C91',
