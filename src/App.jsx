@@ -31,12 +31,14 @@ const App = () => {
     return instance.acquireTokenSilent({ ...loginRequest, account });
   };
 
-  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
-    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
-    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
-    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
-  const months = ['January', 'February', 'March', "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
+  const entityOptions = [
+    1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466,
+    3121, 477, 1456, 1287, 1396, 3168, 417, 3583, 1698, 1443, 1662, 1204,
+    478, 1029, 1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619
+  ];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -57,9 +59,45 @@ const App = () => {
 
   const handleDashboardSubmit = (e) => {
     e.preventDefault();
-    if (entity && month && year) setView('upload');
-    else alert('Please select entity, month, and year.');
+    if (entity && month && year) {
+      setView('upload');
+    } else {
+      alert('Please select entity, month, and year.');
+    }
   };
+
+  const renderUploadTable = (headers, data, setData) => (
+    <div>
+      <h3>{section.replace('_', ' ').toUpperCase()}</h3>
+      <table border="1" cellPadding="6" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            {headers.map(h => <th key={h.key}>{h.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {[...Array(5)].map((_, i) => (
+            <tr key={i}>
+              {headers.map(h => (
+                <td key={h.key}>
+                  <input
+                    type="text"
+                    value={data[i]?.[h.key] || ''}
+                    onChange={(e) => {
+                      const updated = [...data];
+                      updated[i] = { ...updated[i], [h.key]: e.target.value };
+                      setData(updated);
+                    }}
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button onClick={() => setView('dashboard')} style={{ marginTop: '1rem' }}>← Go Back</button>
+    </div>
+  );
 
   const renderUploadPage = () => {
     if (section === 'cash_app') {
@@ -73,6 +111,7 @@ const App = () => {
       ];
       return renderUploadTable(headers, invoiceData, setInvoiceData);
     }
+
     if (section === 'po_pod') {
       const headers = [
         { key: 'so', label: 'SO' },
@@ -85,10 +124,12 @@ const App = () => {
         { key: 'plant', label: 'Plant' },
         { key: 'customer', label: 'Customer' },
         { key: 'product', label: 'Product' },
-        { key: 'incoterms', label: 'Incoterms' }
+        { key: 'incoterms', label: 'Incoterms' },
+        { key: 'walkthrough', label: 'Walkthrough' }
       ];
       return renderUploadTable(headers, poPodData, setPoPodData);
     }
+
     if (section === 'follow_up') {
       const headers = [
         { key: 'group', label: 'Group/Statutory' },
@@ -109,6 +150,7 @@ const App = () => {
       ];
       return renderUploadTable(headers, followUpData, setFollowUpData);
     }
+
     return null;
   };
 
