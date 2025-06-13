@@ -5,7 +5,6 @@ import * as XLSX from 'xlsx';
 
 const App = () => {
   const { instance, accounts } = useMsal();
-
   const [view, setView] = useState('signin');
   const [section, setSection] = useState('');
   const [entity, setEntity] = useState('');
@@ -16,8 +15,12 @@ const App = () => {
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
 
-  const entityOptions = [1207, 3188, 1012];
-  const months = ['January', 'February', 'March'];
+  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
+    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
+    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
+  const months = ['January', 'February', 'March', "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -70,103 +73,7 @@ const App = () => {
     const file = e.target.files[0];
     if (!file) return;
     const accessToken = await getAccessToken();
-    const uploadUrl = `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${file.name}:/content`;
-
-    const res = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: file
-    });
-
-    if (res.ok) {
-      const updated = [...data];
-      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
-      setData(updated);
-      alert('✅ Upload complete!');
-    } else {
-      alert('❌ Upload failed.');
-    }
-  };
-
-  const renderCell = (value, rowIdx, key, data, setData) => {
-    const isFile = typeof value === 'string' && /\.(pdf|xlsx|docx)$/i.test(value);
-    const fileUrl = `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${value}:/content`;
-
-    return (
-      <>
-        {isFile && (
-          <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', color: '#007C91' }}>
-            {value}
-          </a>
-        )}
-        <input
-          type="text"
-          value={value || ''}
-          onChange={(e) => handleInputChange(e, rowIdx, key, data, setData)}
-          onDoubleClick={() => document.getElementById(`file-${key}-${rowIdx}`)?.click()}
-          style={{ width: '100%' }}
-        />
-        <input
-          type="file"
-          id={`file-${key}-${rowIdx}`}
-          style={{ display: 'none' }}
-          onChange={(e) => handleFileUpload(e, rowIdx, key, data, setData)}
-        />
-      </>
-    );
-  };
-
-  const renderUploadTable = (headers, data, setData) => {
-    const filteredData = data.filter(row =>
-      headers.every(h =>
-        !filters[h.key] || (row[h.key] ?? '').toLowerCase().includes(filters[h.key].toLowerCase())
-      )
-    );
-
-    const exportToExcel = () => {
-      const rows = data.map(row => {
-        const obj = {};
-        headers.forEach(h => obj[h.label] = row[h.key] || '');
-        return obj;
-      });
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, section.toUpperCase());
-      XLSX.writeFile(wb, `${section}_${entity}_${month}_${year}.xlsx`);
-    };
-
-    return (
-      <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
-        <h2 style={{ color: '#007C91' }}>{section.replace('_', ' ').toUpperCase()}</h2>
-        <div style={{ marginBottom: '1rem' }}>
-          <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-          <button onClick={exportToExcel} style={{ marginLeft: '1rem' }}>⬇ Export to Excel</button>
-          <button onClick={logout} style={{ float: 'right' }}>Logout</button>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ backgroundColor: '#e8f4f8' }}>
-            <tr>
-              {headers.map(h => (
-                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
-                  {h.label}
-                  <br />
-                  <input
-                    type="text"
-                    placeholder="Filter"
-                    value={filters[h.key] || ''}
-                    onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
-                    style={{ width: '95%' }}
-                  />
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, rowIdx) => (
-              <tr key={rowIdx}>
-                {headers.map(h => (
-                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
-                    {renderCell(row[h.key], rowIdx, h.key, data, setData)}
+                    />
                   </td>
                 ))}
               </tr>
@@ -244,7 +151,6 @@ const App = () => {
       {view === 'home' && (
         <div>
           <h2 style={{ color: '#007C91' }}>Welcome</h2>
-          <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
           {['cash_app', 'po_pod', 'follow_up'].map(s => (
             <button key={s} onClick={() => handleSectionClick(s)} style={{
               margin: '1rem', padding: '1rem 2rem', backgroundColor: '#007C91',
@@ -278,9 +184,7 @@ const App = () => {
             <option value="">-- Select --</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button type="submit" style={{
-            backgroundColor: '#007C91', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '4px'
-          }}>
+          <button type="submit" style={{ backgroundColor: '#007C91', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '4px' }}>
             Submit
           </button>
         </form>
@@ -292,4 +196,3 @@ const App = () => {
 };
 
 export default App;
-
