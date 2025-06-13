@@ -2,8 +2,8 @@ import { PublicClientApplication } from '@azure/msal-browser';
 
 export const msalConfig = {
   auth: {
-    clientId: 'YOUR_CLIENT_ID',
-    authority: 'https://login.microsoftonline.com/YOUR_TENANT_ID', // Replace this
+    clientId: '4d661288-c66e-45a8-a8a3-b76b795be7f9', // your App (client) ID
+    authority: 'https://login.microsoftonline.com/a00de4ec-48a8-43a6-be74-e31274e2060d', // your Directory (tenant) ID
     redirectUri: window.location.origin
   },
   cache: {
@@ -14,7 +14,7 @@ export const msalConfig = {
 
 export const loginRequest = {
   scopes: ['User.Read'],
-  prompt: 'login'
+  prompt: 'login' // force credential entry every time
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
