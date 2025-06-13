@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 
 const App = () => {
   const { instance, accounts } = useMsal();
+
   const [view, setView] = useState('signin');
   const [section, setSection] = useState('');
   const [entity, setEntity] = useState('');
@@ -14,6 +15,20 @@ const App = () => {
   const [invoiceData, setInvoiceData] = useState([]);
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
+
+  const entityOptions = [
+    1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466,
+    3121, 477, 1456, 1287, 1396, 3168, 417, 3583, 1698, 1443, 1662, 1204,
+    478, 1029, 1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619
+  ];
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const years = ['2025', '2026'];
 
   useEffect(() => {
     if (accounts.length > 0) setView('home');
@@ -67,7 +82,9 @@ const App = () => {
 
     const res = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      },
       body: file
     });
 
@@ -110,7 +127,7 @@ const App = () => {
   const renderUploadTable = (headers, data, setData) => {
     const filteredData = data.filter(row =>
       headers.every(h =>
-        !filters[h.key] || (row[h.key] ?? '').toLowerCase().includes(filters[h.key].toLowerCase())
+        !filters[h.key] || (row[h.key] ?? '').toString().toLowerCase().includes(filters[h.key].toLowerCase())
       )
     );
 
@@ -166,6 +183,7 @@ const App = () => {
       </div>
     );
   };
+
   const headersMap = {
     cash_app: [
       { key: 'invoice', label: 'Invoice' },
@@ -212,34 +230,51 @@ const App = () => {
     po_pod: [poPodData, setPoPodData],
     follow_up: [followUpData, setFollowUpData]
   };
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
       {view === 'signin' && (
         <div style={{ textAlign: 'center', marginTop: '10%' }}>
-          <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo"
-               style={{ width: '400px', marginBottom: '1rem' }} />
+          <img
+            src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp"
+            alt="MSD Logo"
+            style={{ width: '400px', marginBottom: '1rem' }}
+          />
           <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
-          <button onClick={signIn} style={{
-            backgroundColor: '#007C91', color: 'white', padding: '0.8rem 2rem', borderRadius: '6px'
-          }}>
+          <button
+            onClick={signIn}
+            style={{
+              backgroundColor: '#007C91',
+              color: 'white',
+              padding: '0.8rem 2rem',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              cursor: 'pointer'
+            }}
+          >
             Sign in with Microsoft
           </button>
         </div>
       )}
+
       {view === 'home' && (
         <div>
           <h2 style={{ color: '#007C91' }}>Welcome</h2>
-          {['cash_app', 'po_pod', 'follow_up'].map(s => (
-            <button key={s} onClick={() => handleSectionClick(s)} style={{
-              margin: '1rem',
-              padding: '1rem 2rem',
-              backgroundColor: '#007C91',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}>
+          <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
+          {['cash_app', 'po_pod', 'follow_up'].map((s) => (
+            <button
+              key={s}
+              onClick={() => handleSectionClick(s)}
+              style={{
+                margin: '1rem',
+                padding: '1rem 2rem',
+                backgroundColor: '#007C91',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
               {s.replace('_', ' ').toUpperCase()}
             </button>
           ))}
@@ -251,18 +286,21 @@ const App = () => {
           <label>Entity</label>
           <select value={entity} onChange={(e) => setEntity(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
-            {[1207, 3188, 1012].map(e => <option key={e} value={e}>{e}</option>)}
+            {entityOptions.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
+
           <label>Month</label>
           <select value={month} onChange={(e) => setMonth(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
-            {['January', 'February', 'March'].map(m => <option key={m} value={m}>{m}</option>)}
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
+
           <label>Year</label>
           <select value={year} onChange={(e) => setYear(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
-            {['2025', '2026'].map(y => <option key={y} value={y}>{y}</option>)}
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+
           <button type="submit" style={{
             backgroundColor: '#007C91',
             color: 'white',
