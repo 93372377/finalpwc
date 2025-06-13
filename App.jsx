@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from './authConfig';
-
+import * as XLSX from 'xlsx'; 
 const App = () => {
   const [view, setView] = useState('signin');
   const [section, setSection] = useState('');
