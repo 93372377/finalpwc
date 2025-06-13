@@ -16,18 +16,8 @@ const App = () => {
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
 
-  const entityOptions = [
-    1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466,
-    3121, 477, 1456, 1287, 1396, 3168, 417, 3583, 1698, 1443, 1662, 1204,
-    478, 1029, 1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
-    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619
-  ];
-
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
+  const entityOptions = [1207, 3188, 1012];
+  const months = ['January', 'February', 'March'];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -35,12 +25,14 @@ const App = () => {
   }, [accounts]);
 
   const signIn = () => instance.loginRedirect(loginRequest);
+  const logout = () => instance.logoutRedirect();
 
   const getAccessToken = async () => {
     const account = accounts[0];
     const response = await instance.acquireTokenSilent({ ...loginRequest, account });
     return response.accessToken;
   };
+
   const handleSectionClick = (s) => {
     setSection(s);
     setEntity('');
@@ -82,9 +74,7 @@ const App = () => {
 
     const res = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
       body: file
     });
 
@@ -92,8 +82,9 @@ const App = () => {
       const updated = [...data];
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
+      alert('✅ Upload complete!');
     } else {
-      alert('Upload failed.');
+      alert('❌ Upload failed.');
     }
   };
 
@@ -124,10 +115,11 @@ const App = () => {
       </>
     );
   };
+
   const renderUploadTable = (headers, data, setData) => {
     const filteredData = data.filter(row =>
       headers.every(h =>
-        !filters[h.key] || (row[h.key] ?? '').toString().toLowerCase().includes(filters[h.key].toLowerCase())
+        !filters[h.key] || (row[h.key] ?? '').toLowerCase().includes(filters[h.key].toLowerCase())
       )
     );
 
@@ -146,9 +138,12 @@ const App = () => {
     return (
       <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
         <h2 style={{ color: '#007C91' }}>{section.replace('_', ' ').toUpperCase()}</h2>
-        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-        <button onClick={exportToExcel} style={{ marginLeft: '1rem' }}>⬇ Export to Excel</button>
-        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={() => setData([...data, {}])}>+ Add Row</button>
+          <button onClick={exportToExcel} style={{ marginLeft: '1rem' }}>⬇ Export to Excel</button>
+          <button onClick={logout} style={{ float: 'right' }}>Logout</button>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ backgroundColor: '#e8f4f8' }}>
             <tr>
               {headers.map(h => (
@@ -230,28 +225,17 @@ const App = () => {
     po_pod: [poPodData, setPoPodData],
     follow_up: [followUpData, setFollowUpData]
   };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
       {view === 'signin' && (
         <div style={{ textAlign: 'center', marginTop: '10%' }}>
-          <img
-            src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp"
-            alt="MSD Logo"
-            style={{ width: '400px', marginBottom: '1rem' }}
-          />
+          <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo"
+               style={{ width: '400px', marginBottom: '1rem' }} />
           <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
-          <button
-            onClick={signIn}
-            style={{
-              backgroundColor: '#007C91',
-              color: 'white',
-              padding: '0.8rem 2rem',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '1rem',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={signIn} style={{
+            backgroundColor: '#007C91', color: 'white', padding: '0.8rem 2rem', borderRadius: '6px'
+          }}>
             Sign in with Microsoft
           </button>
         </div>
@@ -261,23 +245,19 @@ const App = () => {
         <div>
           <h2 style={{ color: '#007C91' }}>Welcome</h2>
           <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
-          {['cash_app', 'po_pod', 'follow_up'].map((s) => (
-            <button
-              key={s}
-              onClick={() => handleSectionClick(s)}
-              style={{
-                margin: '1rem',
-                padding: '1rem 2rem',
-                backgroundColor: '#007C91',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
+          {['cash_app', 'po_pod', 'follow_up'].map(s => (
+            <button key={s} onClick={() => handleSectionClick(s)} style={{
+              margin: '1rem', padding: '1rem 2rem', backgroundColor: '#007C91',
+              color: 'white', border: 'none', borderRadius: '6px'
+            }}>
               {s.replace('_', ' ').toUpperCase()}
             </button>
           ))}
+          <button onClick={logout} style={{
+            float: 'right', backgroundColor: '#ccc', padding: '0.5rem 1rem', borderRadius: '4px'
+          }}>
+            Logout
+          </button>
         </div>
       )}
 
@@ -288,26 +268,18 @@ const App = () => {
             <option value="">-- Select --</option>
             {entityOptions.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
-
           <label>Month</label>
           <select value={month} onChange={(e) => setMonth(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
             {months.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-
           <label>Year</label>
           <select value={year} onChange={(e) => setYear(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-
           <button type="submit" style={{
-            backgroundColor: '#007C91',
-            color: 'white',
-            padding: '0.5rem 1.5rem',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
+            backgroundColor: '#007C91', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '4px'
           }}>
             Submit
           </button>
