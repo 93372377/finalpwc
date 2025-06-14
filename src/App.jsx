@@ -29,10 +29,38 @@ const App = () => {
   const signIn = () => instance.loginRedirect(loginRequest);
   const logout = () => instance.logoutRedirect();
 
+  const getAccessToken = async () => {
+    const account = accounts[0];
+    const response = await instance.acquireTokenSilent({ ...loginRequest, account });
+    return response.accessToken;
+  };
+
+  const getDownloadUrl = (fileName) =>
+    `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
+
   const handleInputChange = (e, rowIdx, key, data, setData) => {
     const updated = [...data];
     updated[rowIdx] = { ...updated[rowIdx], [key]: e.target.value };
     setData(updated);
+  };
+
+  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const accessToken = await getAccessToken();
+    const uploadUrl = getDownloadUrl(file.name);
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: file
+    });
+    if (response.ok) {
+      const updated = [...data];
+      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
+      setData(updated);
+    } else {
+      alert('Upload failed');
+    }
   };
 
   const getFilteredData = (data, headers) =>
@@ -72,12 +100,27 @@ const App = () => {
               <tr key={rowIdx}>
                 {headers.map(h => (
                   <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
-                    <input
-                      type="text"
-                      value={row[h.key] || ''}
-                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                      style={{ width: '100%' }}
-                    />
+                    {/\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(row[h.key]) ? (
+                      <>
+                        <a href={getDownloadUrl(row[h.key])} target="_blank" rel="noreferrer">📎 {row[h.key]}</a>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={row[h.key] || ''}
+                          onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                          onClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                          style={{ width: '100%' }}
+                        />
+                        <input
+                          type="file"
+                          id={`file-${h.key}-${rowIdx}`}
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                        />
+                      </>
+                    )}
                   </td>
                 ))}
               </tr>
