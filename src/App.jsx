@@ -14,6 +14,8 @@ const App = () => {
   const [invoiceData, setInvoiceData] = useState([]);
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
+  const [previewIndex, setPreviewIndex] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const entityOptions = [1207, 3188, 1012];
   const months = ['January', 'February', 'March'];
@@ -31,6 +33,12 @@ const App = () => {
     const response = await instance.acquireTokenSilent({ ...loginRequest, account });
     return response.accessToken;
   };
+
+  const getDownloadUrl = (fileName) => {
+    return \`https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/\${fileName}:/content\`;
+  };
+
+  const isFileLink = (value) => typeof value === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(value);
 
   const handlePaste = (e, headers, data, setData) => {
     const pasted = e.clipboardData.getData('text/plain');
@@ -56,25 +64,30 @@ const App = () => {
     if (!file) return;
     try {
       const accessToken = await getAccessToken();
-      const uploadUrl = `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${file.name}:/content`;
-
+      const uploadUrl = getDownloadUrl(file.name);
       const response = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        },
+        headers: { Authorization: \`Bearer \${accessToken}\` },
         body: file
       });
-
       if (!response.ok) throw new Error('Upload failed');
-
       const updated = [...data];
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
       alert('✅ File uploaded to SharePoint!');
     } catch (err) {
       console.error('Upload error:', err);
-      alert('❌ Upload failed. Check console for details.');
+      alert('❌ Upload failed. Check console.');
+    }
+  };
+
+  const togglePreview = (idx, fileName) => {
+    if (previewIndex === idx) {
+      setPreviewIndex(null);
+      setPreviewFile(null);
+    } else {
+      setPreviewIndex(idx);
+      setPreviewFile(fileName);
     }
   };
 
@@ -90,13 +103,15 @@ const App = () => {
     return (
       <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
         <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
-        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-        <button onClick={logout} style={{ float: 'right' }}>Logout</button>
-        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={() => setData([...data, {}])} style={buttonStyle}>+ Add Row</button>
+          <button onClick={logout} style={{ ...buttonStyle, float: 'right' }}>Logout</button>
+        </div>
+        <table style={tableStyle}>
           <thead style={{ backgroundColor: '#e8f4f8' }}>
             <tr>
               {headers.map(h => (
-                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
+                <th key={h.key} style={cellStyle}>
                   {h.label}
                   <br />
                   <input
@@ -108,34 +123,62 @@ const App = () => {
                   />
                 </th>
               ))}
+              <th style={cellStyle}>Preview</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.map((row, rowIdx) => (
-              <tr key={rowIdx}>
-                {headers.map(h => (
-                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
-                    <input
-                      type="text"
-                      value={row[h.key] || ''}
-                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                      onDoubleClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
-                      style={{ width: '100%' }}
-                    />
-                    <input
-                      type="file"
-                      id={`file-${h.key}-${rowIdx}`}
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
-                    />
+              <React.Fragment key={rowIdx}>
+                <tr>
+                  {headers.map(h => (
+                    <td key={h.key} style={cellStyle}>
+                      {isFileLink(row[h.key]) ? (
+                        <a href={getDownloadUrl(row[h.key])} target="_blank" rel="noreferrer">
+                          {row[h.key]}
+                        </a>
+                      ) : (
+                        <input
+                          type="text"
+                          value={row[h.key] || ''}
+                          onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                          onDoubleClick={() => document.getElementById(\`file-\${h.key}-\${rowIdx}\`)?.click()}
+                          style={{ width: '100%' }}
+                        />
+                      )}
+                      <input
+                        type="file"
+                        id={\`file-\${h.key}-\${rowIdx}\`}
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                      />
+                    </td>
+                  ))}
+                  <td style={cellStyle}>
+                    {previewIndex === rowIdx ? (
+                      <button onClick={() => togglePreview(rowIdx, '')} style={buttonStyle}>Hide</button>
+                    ) : (
+                      <button onClick={() => togglePreview(rowIdx, Object.values(row).find(isFileLink))} style={buttonStyle}>View</button>
+                    )}
                   </td>
-                ))}
-              </tr>
+                </tr>
+                {previewIndex === rowIdx && previewFile && (
+                  <tr>
+                    <td colSpan={headers.length + 1}>
+                      <iframe
+                        src={getDownloadUrl(previewFile)}
+                        title="Preview"
+                        width="100%"
+                        height="400px"
+                      ></iframe>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
         <br />
-        <button onClick={() => setView('dashboard')}>← Go Back</button>
+        <button onClick={() => setView('dashboard')} style={buttonStyle}>← Go Back</button>
       </div>
     );
   };
@@ -187,32 +230,51 @@ const App = () => {
     follow_up: [followUpData, setFollowUpData]
   };
 
+  const buttonStyle = {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#007C91',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    margin: '0.25rem',
+    cursor: 'pointer'
+  };
+
+  const tableStyle = {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '1rem'
+  };
+
+  const cellStyle = {
+    border: '1px solid #ccc',
+    padding: '8px'
+  };
+
   return (
-    <div style={{ padding: '2rem', fontFamily: 'Segoe UI' }}>
-      <h1>Debug View: {view}</h1>
-      <p>Accounts: {JSON.stringify(accounts)}</p>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
+        <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo" style={{ height: '50px' }} />
+      </div>
       {view === 'signin' && (
         <div style={{ textAlign: 'center' }}>
-          <h2>Sign In</h2>
-          <button onClick={signIn}>Sign in with Microsoft</button>
+          <button onClick={signIn} style={buttonStyle}>Sign in with Microsoft</button>
         </div>
       )}
-
       {view === 'home' && (
         <div>
-          <h2>Welcome</h2>
-          <p>Signed in as: {accounts[0]?.username}</p>
-          {['cash_app', 'po_pod', 'follow_up'].map(s => (
-            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }} style={{ marginRight: '1rem' }}>
+          <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
+          {Object.keys(headersMap).map(s => (
+            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }} style={buttonStyle}>
               {s.replace('_', ' ').toUpperCase()}
             </button>
           ))}
-          <button onClick={logout}>Logout</button>
+          <button onClick={logout} style={buttonStyle}>Logout</button>
         </div>
       )}
-
       {view === 'dashboard' && (
-        <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }} style={{ maxWidth: '400px', margin: '2rem auto' }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }} style={{ maxWidth: '400px', marginTop: '2rem' }}>
           <label>Entity</label>
           <select value={entity} onChange={(e) => setEntity(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
@@ -228,14 +290,12 @@ const App = () => {
             <option value="">-- Select --</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button type="submit">Submit</button>
+          <button type="submit" style={buttonStyle}>Submit</button>
         </form>
       )}
-
       {view === 'upload' && renderUploadTable(headersMap[section], ...dataMap[section])}
     </div>
   );
 };
 
 export default App;
-
