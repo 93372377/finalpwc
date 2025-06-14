@@ -1,12 +1,26 @@
-# React + Vite
+# PWC Testing Automation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This app provides a simple dashboard for uploading documents to Microsoft SharePoint using Microsoft Graph. It is built with React and Vite and uses the Microsoft Authentication Library (MSAL) for Azure AD sign‑in.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Create a `.env` file with the following variables:
+   ```bash
+   VITE_CLIENT_ID=<Azure AD application id>
+   VITE_TENANT_ID=<Azure AD tenant id>
+   VITE_REDIRECT_URI=<app redirect URI>
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Build for production:
+   ```bash
+   npm run build
+   ```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The app allows users to sign in with Microsoft, select a section, and upload files. Uploaded files are stored in SharePoint using Microsoft Graph API.

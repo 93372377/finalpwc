@@ -1,10 +1,14 @@
 import { PublicClientApplication } from '@azure/msal-browser';
 
+const clientId = import.meta.env.VITE_CLIENT_ID;
+const tenantId = import.meta.env.VITE_TENANT_ID;
+const redirectUri = import.meta.env.VITE_REDIRECT_URI;
+
 export const msalConfig = {
   auth: {
-    clientId: '4d661288-c66e-45a8-a8a3-b76b795be7f9', // App (client) ID
-    authority: 'https://login.microsoftonline.com/a00de4ec-48a8-43a6-be74-e31274e2060d', // Tenant ID
-    redirectUri: 'https://finalfinalpwc22.netlify.app'
+    clientId,
+    authority: `https://login.microsoftonline.com/${tenantId}`,
+    redirectUri
   },
   cache: {
     cacheLocation: 'localStorage',

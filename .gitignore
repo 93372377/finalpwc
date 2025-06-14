@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+index-*.js
+index-*.css
+*.zip
+.env
 *.local
 
 # Editor directories and files

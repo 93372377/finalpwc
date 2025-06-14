@@ -37,7 +37,8 @@ const App = () => {
   };
 
   const getDownloadUrl = (fileName) => {
-    const encodedPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
+    const path = `Shared Documents/General/PWC Revenue Testing Automation/${fileName}`;
+    const encodedPath = encodeURI(path);
     return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}:/content`;
   };
 
