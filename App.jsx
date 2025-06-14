@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from './authConfig';
-import * as XLSX from 'xlsx';
 
 const App = () => {
   const { instance, accounts } = useMsal();
@@ -16,12 +15,15 @@ const App = () => {
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
 
-  const entityOptions = [1207, 3188, 1012];
-  const months = ['January', 'February', 'March'];
+  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
+    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
+    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
+  const months = ['January', 'February', 'March', "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
   const years = ['2025', '2026'];
 
   useEffect(() => {
-    console.log("✅ App loaded");
     if (accounts.length > 0) setView('home');
   }, [accounts]);
 
@@ -56,18 +58,6 @@ const App = () => {
     alert('✅ Simulated upload complete!');
   };
 
-  const exportToExcel = (headers, data) => {
-    const rows = data.map(row => {
-      const obj = {};
-      headers.forEach(h => obj[h.label] = row[h.key] || '');
-      return obj;
-    });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, section.toUpperCase());
-    XLSX.writeFile(wb, `${section}_${entity}_${month}_${year}.xlsx`);
-  };
-
   const getFilteredData = (data, headers) =>
     data.filter(row =>
       headers.every(h =>
@@ -81,7 +71,6 @@ const App = () => {
       <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
         <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
         <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-        <button onClick={() => exportToExcel(headers, data)} style={{ marginLeft: '1rem' }}>⬇ Export to Excel</button>
         <button onClick={logout} style={{ float: 'right' }}>Logout</button>
         <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
           <thead style={{ backgroundColor: '#e8f4f8' }}>
