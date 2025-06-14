@@ -21,31 +21,12 @@ const App = () => {
   const years = ['2025', '2026'];
 
   useEffect(() => {
+    console.log("✅ App loaded");
     if (accounts.length > 0) setView('home');
   }, [accounts]);
 
   const signIn = () => instance.loginRedirect(loginRequest);
   const logout = () => instance.logoutRedirect();
-
-  const getAccessToken = async () => {
-    const account = accounts[0];
-    const response = await instance.acquireTokenSilent({ ...loginRequest, account });
-    return response.accessToken;
-  };
-
-  const handleSectionClick = (s) => {
-    setSection(s);
-    setEntity('');
-    setMonth('');
-    setYear('');
-    setView('dashboard');
-  };
-
-  const handleDashboardSubmit = (e) => {
-    e.preventDefault();
-    if (entity && month && year) setView('upload');
-    else alert('Please select entity, month, and year.');
-  };
 
   const handlePaste = (e, headers, data, setData) => {
     const pasted = e.clipboardData.getData('text/plain');
@@ -66,26 +47,13 @@ const App = () => {
     setData(updated);
   };
 
-  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
+  const handleFileUpload = (e, rowIdx, key, data, setData) => {
     const file = e.target.files[0];
     if (!file) return;
-    const accessToken = await getAccessToken();
-    const uploadUrl = `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${file.name}:/content`;
-
-    const res = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: file
-    });
-
-    if (res.ok) {
-      const updated = [...data];
-      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
-      setData(updated);
-      alert('✅ Upload complete!');
-    } else {
-      alert('❌ Upload failed.');
-    }
+    const updated = [...data];
+    updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
+    setData(updated);
+    alert('✅ Simulated upload complete!');
   };
 
   const exportToExcel = (headers, data) => {
@@ -111,10 +79,10 @@ const App = () => {
     const filteredData = getFilteredData(data, headers);
     return (
       <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
-        <h2 style={{ color: '#007C91' }}>{section.replace('_', ' ').toUpperCase()}</h2>
+        <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
         <button onClick={() => setData([...data, {}])}>+ Add Row</button>
         <button onClick={() => exportToExcel(headers, data)} style={{ marginLeft: '1rem' }}>⬇ Export to Excel</button>
-        <button onClick={logout} style={{ float: 'right', marginLeft: '1rem' }}>Logout</button>
+        <button onClick={logout} style={{ float: 'right' }}>Logout</button>
         <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
           <thead style={{ backgroundColor: '#e8f4f8' }}>
             <tr>
@@ -211,40 +179,31 @@ const App = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
+    <div style={{ padding: '2rem', fontFamily: 'Segoe UI' }}>
+      <h1>Debug View: {view}</h1>
+      <p>Accounts: {JSON.stringify(accounts)}</p>
       {view === 'signin' && (
-        <div style={{ textAlign: 'center', marginTop: '10%' }}>
-          <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
-          <button onClick={signIn} style={{
-            backgroundColor: '#007C91', color: 'white', padding: '0.8rem 2rem', borderRadius: '6px'
-          }}>
-            Sign in with Microsoft
-          </button>
+        <div style={{ textAlign: 'center' }}>
+          <h2>Sign In</h2>
+          <button onClick={signIn}>Sign in with Microsoft</button>
         </div>
       )}
 
       {view === 'home' && (
         <div>
-          <h2 style={{ color: '#007C91' }}>Welcome</h2>
-          <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
+          <h2>Welcome</h2>
+          <p>Signed in as: {accounts[0]?.username}</p>
           {['cash_app', 'po_pod', 'follow_up'].map(s => (
-            <button key={s} onClick={() => handleSectionClick(s)} style={{
-              margin: '1rem', padding: '1rem 2rem', backgroundColor: '#007C91',
-              color: 'white', border: 'none', borderRadius: '6px'
-            }}>
+            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }} style={{ marginRight: '1rem' }}>
               {s.replace('_', ' ').toUpperCase()}
             </button>
           ))}
-          <button onClick={logout} style={{
-            float: 'right', backgroundColor: '#ccc', padding: '0.5rem 1rem', borderRadius: '4px'
-          }}>
-            Logout
-          </button>
+          <button onClick={logout}>Logout</button>
         </div>
       )}
 
       {view === 'dashboard' && (
-        <form onSubmit={handleDashboardSubmit} style={{ maxWidth: '400px', margin: '2rem auto' }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }} style={{ maxWidth: '400px', margin: '2rem auto' }}>
           <label>Entity</label>
           <select value={entity} onChange={(e) => setEntity(e.target.value)} style={{ width: '100%', marginBottom: '1rem' }}>
             <option value="">-- Select --</option>
@@ -260,9 +219,7 @@ const App = () => {
             <option value="">-- Select --</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button type="submit" style={{ backgroundColor: '#007C91', color: 'white', padding: '0.5rem 1.5rem', borderRadius: '4px' }}>
-            Submit
-          </button>
+          <button type="submit">Submit</button>
         </form>
       )}
 
