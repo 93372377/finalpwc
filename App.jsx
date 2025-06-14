@@ -29,10 +29,38 @@ const App = () => {
   const signIn = () => instance.loginRedirect(loginRequest);
   const logout = () => instance.logoutRedirect();
 
+  const getAccessToken = async () => {
+    const account = accounts[0];
+    const response = await instance.acquireTokenSilent({ ...loginRequest, account });
+    return response.accessToken;
+  };
+
+  const getDownloadUrl = (fileName) =>
+    `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
+
   const handleInputChange = (e, rowIdx, key, data, setData) => {
     const updated = [...data];
     updated[rowIdx] = { ...updated[rowIdx], [key]: e.target.value };
     setData(updated);
+  };
+
+  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const accessToken = await getAccessToken();
+    const uploadUrl = getDownloadUrl(file.name);
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: file
+    });
+    if (response.ok) {
+      const updated = [...data];
+      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
+      setData(updated);
+    } else {
+      alert('Upload failed');
+    }
   };
 
   const getFilteredData = (data, headers) =>
@@ -45,39 +73,19 @@ const App = () => {
   const renderUploadTable = (headers, data, setData) => {
     const filteredData = getFilteredData(data, headers);
     return (
-      <div>
-        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
-          <thead style={{ backgroundColor: '#e8f4f8' }}>
-            <tr>
-              {headers.map(h => (
-                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
-                  {h.label}
-                  <br />
-                  <select
-                    value={filters[h.key] || ''}
-                    onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
-                  >
-                    <option value="">All</option>
-                    {[...new Set(data.map(row => row[h.key]).filter(Boolean))].map(val => (
-                      <option key={val} value={val}>{val}</option>
-                    ))}
-                  </select>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, rowIdx) => (
-              <tr key={rowIdx}>
-                {headers.map(h => (
-                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
-                    <input
-                      type="text"
-                      value={row[h.key] || ''}
-                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                      style={{ width: '100%' }}
-                    />
+                          value={row[h.key] || ''}
+                          onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                          onClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                          style={{ width: '100%' }}
+                        />
+                        <input
+                          type="file"
+                          id={`file-${h.key}-${rowIdx}`}
+                          style={{ display: 'none' }}
+                          onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                        />
+                      </>
+                    )}
                   </td>
                 ))}
               </tr>
