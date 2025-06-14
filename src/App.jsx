@@ -53,7 +53,7 @@ const App = () => {
     if (!file) return;
     try {
       const accessToken = await getAccessToken();
-      const uploadUrl = getDownloadUrl(file.name);
+      const uploadUrl = getDownloadUrl(encodeURIComponent(file.name));
       const response = await fetch(uploadUrl, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -111,7 +111,7 @@ const App = () => {
                   {headers.map(h => (
                     <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
                       {isFileLink(row[h.key]) ? (
-                        <a href={getDownloadUrl(row[h.key])} target="_blank" rel="noreferrer">📎 {row[h.key]}</a>
+                        <a href={getDownloadUrl(encodeURIComponent(row[h.key]))} target="_blank" rel="noreferrer">📎 {row[h.key]}</a>
                       ) : (
                         <>
                           <input
@@ -141,7 +141,7 @@ const App = () => {
                   <tr>
                     <td colSpan={headers.length + 1}>
                       <iframe
-                        src={getDownloadUrl(previewFile)}
+                        src={getDownloadUrl(encodeURIComponent(previewFile))}
                         title="Preview"
                         width="100%"
                         height="400px"
@@ -212,13 +212,11 @@ const App = () => {
         <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
         <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo" style={{ height: '50px' }} />
       </div>
-
       {view === 'signin' && (
         <div style={{ textAlign: 'center' }}>
           <button onClick={signIn}>Sign in with Microsoft</button>
         </div>
       )}
-
       {view === 'home' && (
         <div>
           <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
@@ -230,7 +228,6 @@ const App = () => {
           <button onClick={logout}>Logout</button>
         </div>
       )}
-
       {view === 'dashboard' && (
         <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }} style={{ maxWidth: '400px', marginTop: '2rem' }}>
           <label>Entity</label>
@@ -251,7 +248,6 @@ const App = () => {
           <button type="submit">Submit</button>
         </form>
       )}
-
       {view === 'upload' && renderUploadTable(headersMap[section], ...dataMap[section])}
     </div>
   );
