@@ -15,32 +15,50 @@ const App = () => {
   const [followUpData, setFollowUpData] = useState([]);
   const [previewFile, setPreviewFile] = useState(null);
 
-  const entityOptions = [
-    1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467,
-    466, 3121, 477, 1456, 1287, 1396, 3168, 417, 3583, 1698, 1443,
-    1662, 1204, 478, 1029, 1471, 1177, 1253, 1580, 3592, 1285, 3225,
-    1101, 1395, 1203, 1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619
-  ];
-
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
-    'August', 'September', 'October', 'November', 'December'];
+  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
+    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
+    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
+  const months = ['January', 'February', 'March', "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
   const years = ['2025', '2026'];
-
-  const signIn = () => instance.loginRedirect(loginRequest);
-  const logout = () => instance.logoutRedirect();
 
   useEffect(() => {
     if (accounts.length > 0) setView('home');
   }, [accounts]);
 
+  const signIn = () => instance.loginRedirect(loginRequest);
+  const logout = () => instance.logoutRedirect();
+
   const getAccessToken = async () => {
-    const account = instance.getAllAccounts()[0];
+    const account = accounts[0];
     const response = await instance.acquireTokenSilent({ ...loginRequest, account });
     return response.accessToken;
   };
 
-  const getDownloadUrl = (encodedPath) =>
-    \`https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/\${encodedPath}:/content\`;
+  const getDownloadUrl = (fileName) => {
+    const encodedPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}:/content`;
+  };
+
+  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const accessToken = await getAccessToken();
+    const uploadUrl = getDownloadUrl(file.name);
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: file
+    });
+    if (response.ok) {
+      const updated = [...data];
+      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
+      setData(updated);
+    } else {
+      alert('❌ Upload failed.');
+    }
+  };
 
   const isFileLink = (val) => typeof val === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(val);
 
@@ -50,65 +68,52 @@ const App = () => {
     setData(updated);
   };
 
-  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const token = await getAccessToken();
-    const path = encodeURIComponent('Shared Documents/General/PWC Revenue Testing Automation/' + file.name);
-    const url = getDownloadUrl(path);
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: { Authorization: \`Bearer \${token}\` },
-      body: file
-    });
-    if (!response.ok) throw new Error('Upload failed');
-    const updated = [...data];
-    updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
-    setData(updated);
-  };
-
-  const getFilteredData = (data, headers) =>
-    data.filter(row =>
-      headers.every(h => !filters[h.key] || row[h.key] === filters[h.key])
-    );
-
   const renderUploadTable = (headers, data, setData) => {
-                            value={row[h.key] || ''}
-                            onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                            onClick={() => document.getElementById(\`file-\${h.key}-\${rowIdx}\`)?.click()}
-                          />
-                          <input
-                            type="file"
-                            id={\`file-\${h.key}-\${rowIdx}\`}
-                            style={{ display: 'none' }}
-                            onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
-                          />
-                        </>
-                      )}
-                    </td>
-                  ))}
-                  <td>
-                    {Object.values(row).some(isFileLink)
-                      ? <button onClick={() => setPreviewFile(Object.values(row).find(isFileLink))}>View</button>
-                      : null}
+    const uniqueOptions = {};
+    headers.forEach(h => {
+      uniqueOptions[h.key] = [...new Set(data.map(row => row[h.key] || ''))];
+    });
+                  <select value={filters[h.key] || ''} onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}>
+                    <option value="">All</option>
+                    {uniqueOptions[h.key].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </th>
+              ))}
+              <th>File</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map((row, rowIdx) => (
+              <tr key={rowIdx}>
+                {headers.map(h => (
+                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '4px' }}>
+                    <input
+                      type="text"
+                      value={row[h.key] || ''}
+                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                      onDoubleClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                      style={{ width: '100%' }}
+                    />
+                    <input
+                      type="file"
+                      id={`file-${h.key}-${rowIdx}`}
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                    />
                   </td>
-                </tr>
-                {previewFile && (
-                  <tr>
-                    <td colSpan={headers.length + 1}>
-                      <iframe
-                        src={getDownloadUrl(encodeURIComponent('Shared Documents/General/PWC Revenue Testing Automation/' + previewFile))}
-                        title="Preview"
-                        width="100%"
-                        height="400px"
-                      />
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+                ))}
+                <td>
+                  {Object.values(row).some(isFileLink) && (
+                    <button onClick={() => window.open(getDownloadUrl(Object.values(row).find(isFileLink)), '_blank')}>
+                      View
+                    </button>
+                  )}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
+        <br />
         <button onClick={() => setView('dashboard')}>← Go Back</button>
       </div>
     );
@@ -162,33 +167,25 @@ const App = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: '2rem', fontFamily: 'Segoe UI' }}>
       <h1>PWC Testing Automation</h1>
-      {view === 'signin' && <button onClick={signIn}>Sign in</button>}
+      {view === 'signin' && <button onClick={signIn}>Sign in with Microsoft</button>}
       {view === 'home' && (
-        <>
-          {Object.keys(headersMap).map(s => (
-            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }}>
-              {s.toUpperCase()}
+        <div>
+          <p>Welcome, {accounts[0]?.username}</p>
+          {Object.keys(headersMap).map(key => (
+            <button key={key} onClick={() => { setSection(key); setView('dashboard'); }}>
+              {key.replace('_', ' ').toUpperCase()}
             </button>
           ))}
           <button onClick={logout}>Logout</button>
-        </>
+        </div>
       )}
       {view === 'dashboard' && (
         <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }}>
-          <select value={entity} onChange={(e) => setEntity(e.target.value)}>
-            <option value="">Select Entity</option>
-            {entityOptions.map(e => <option key={e}>{e}</option>)}
-          </select>
-          <select value={month} onChange={(e) => setMonth(e.target.value)}>
-            <option value="">Select Month</option>
-            {months.map(m => <option key={m}>{m}</option>)}
-          </select>
-          <select value={year} onChange={(e) => setYear(e.target.value)}>
-            <option value="">Select Year</option>
-            {years.map(y => <option key={y}>{y}</option>)}
-          </select>
+          <select value={entity} onChange={(e) => setEntity(e.target.value)}><option>-- Entity --</option>{entityOptions.map(v => <option key={v}>{v}</option>)}</select>
+          <select value={month} onChange={(e) => setMonth(e.target.value)}><option>-- Month --</option>{months.map(m => <option key={m}>{m}</option>)}</select>
+          <select value={year} onChange={(e) => setYear(e.target.value)}><option>-- Year --</option>{years.map(y => <option key={y}>{y}</option>)}</select>
           <button type="submit">Submit</button>
         </form>
       )}
