@@ -35,7 +35,7 @@ const App = () => {
   };
 
   const getDownloadUrl = (fileName) => {
-    return \`https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/\${fileName}:/content\`;
+    return \`https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content\`;
   };
 
   const isFileLink = (value) => typeof value === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(value);
