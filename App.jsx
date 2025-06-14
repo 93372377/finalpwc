@@ -32,9 +32,7 @@ const App = () => {
 
   const getAccessToken = async () => {
     const account = instance.getAllAccounts()[0];
-    if (!account) {
-      throw new Error("No account found. Please log in.");
-    }
+    if (!account) throw new Error("No account found.");
     const response = await instance.acquireTokenSilent({ ...loginRequest, account });
     return response.accessToken;
   };
@@ -64,19 +62,78 @@ const App = () => {
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
     } catch (err) {
-      console.error('Upload error:', err);
       alert('❌ Upload failed: ' + err.message);
+      console.error(err);
     }
   };
+
+  const isFileLink = (val) => typeof val === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(val);
 
   const getFilteredData = (data, headers) =>
     data.filter(row =>
       headers.every(h =>
         !filters[h.key] || row[h.key] === filters[h.key]
+      )
+    );
+
+  const renderUploadTable = (headers, data, setData) => {
+    const filteredData = getFilteredData(data, headers);
+    return (
+      <div>
+        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
+        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+          <thead style={{ backgroundColor: '#e8f4f8' }}>
+            <tr>
+              {headers.map(h => (
+                <th key={h.key}>
+                  {h.label}
+                  <br />
+                  <select
+                    value={filters[h.key] || ''}
+                    onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
+                  >
+                    <option value="">All</option>
+                    {[...new Set(data.map(row => row[h.key]).filter(Boolean))].map(val => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                </th>
+              ))}
+              <th>Preview</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.map((row, rowIdx) => (
+              <React.Fragment key={rowIdx}>
+                <tr>
+                  {headers.map(h => (
+                    <td key={h.key}>
+                      {isFileLink(row[h.key]) ? (
+                        <a href={getDownloadUrl(encodeURIComponent(row[h.key]))} target="_blank" rel="noreferrer">
+                          📎 {row[h.key]}
+                        </a>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            value={row[h.key] || ''}
+                            onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                            onClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                          />
+                          <input
+                            type="file"
+                            id={`file-${h.key}-${rowIdx}`}
+                            style={{ display: 'none' }}
+                            onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                          />
+                        </>
+                      )}
+                    </td>
+                  ))}
                   <td>
-                    {Object.values(row).some(isFileLink) ? (
+                    {Object.values(row).some(isFileLink) && (
                       <button onClick={() => setPreviewFile(Object.values(row).find(isFileLink))}>View</button>
-                    ) : null}
+                    )}
                   </td>
                 </tr>
                 {previewFile && (
@@ -87,7 +144,7 @@ const App = () => {
                         title="Preview"
                         width="100%"
                         height="400px"
-                      ></iframe>
+                      />
                     </td>
                   </tr>
                 )}
