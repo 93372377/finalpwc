@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from './authConfig';
@@ -37,8 +36,10 @@ const App = () => {
     return response.accessToken;
   };
 
-  const getDownloadUrl = (fileName) =>
-    `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
+  const getDownloadUrl = (fileName) => {
+    const fullPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${fullPath}:/content`;
+  };
 
   const isFileLink = (val) => typeof val === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(val);
 
@@ -52,7 +53,7 @@ const App = () => {
     const file = e.target.files[0];
     if (!file) return;
     const accessToken = await getAccessToken();
-    const uploadUrl = getDownloadUrl(encodeURIComponent(file.name));
+    const uploadUrl = getDownloadUrl(file.name);
     const response = await fetch(uploadUrl, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -104,7 +105,7 @@ const App = () => {
                   {headers.map(h => (
                     <td key={h.key}>
                       {isFileLink(row[h.key]) ? (
-                        <a href={getDownloadUrl(encodeURIComponent(row[h.key]))} target="_blank" rel="noreferrer">
+                        <a href={getDownloadUrl(row[h.key])} target="_blank" rel="noreferrer">
                           📎 {row[h.key]}
                         </a>
                       ) : (
@@ -135,7 +136,7 @@ const App = () => {
                   <tr>
                     <td colSpan={headers.length + 1}>
                       <iframe
-                        src={getDownloadUrl(encodeURIComponent(previewFile))}
+                        src={getDownloadUrl(previewFile)}
                         title="Preview"
                         width="100%"
                         height="400px"
