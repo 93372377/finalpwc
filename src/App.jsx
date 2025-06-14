@@ -40,11 +40,12 @@ const App = () => {
     return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
   };
 
-  const handleInputChange = (e, rowIdx, key, data, setData) => {
-    const updated = [...data];
-    updated[rowIdx] = { ...updated[rowIdx], [key]: e.target.value };
-    setData(updated);
-  };
+  const getFilteredData = (data, headers) =>
+  data.filter(row =>
+    headers.every(h =>
+      !filters[h.key] || row[h.key] === filters[h.key]
+    )
+  );
 
   const handlePaste = (e, headers, data, setData) => {
     const pasted = e.clipboardData.getData('text/plain');
