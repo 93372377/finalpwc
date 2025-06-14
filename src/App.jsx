@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from './authConfig';
@@ -30,107 +29,66 @@ const App = () => {
   const signIn = () => instance.loginRedirect(loginRequest);
   const logout = () => instance.logoutRedirect();
 
-  const getAccessToken = async () => {
-    const account = accounts[0];
-    const response = await instance.acquireTokenSilent({ ...loginRequest, account });
-    return response.accessToken;
-  };
-
-  const getDownloadUrl = (fileName) => {
-    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
+  const handleInputChange = (e, rowIdx, key, data, setData) => {
+    const updated = [...data];
+    updated[rowIdx] = { ...updated[rowIdx], [key]: e.target.value };
+    setData(updated);
   };
 
   const getFilteredData = (data, headers) =>
-  data.filter(row =>
-    headers.every(h =>
-      !filters[h.key] || row[h.key] === filters[h.key]
-    )
-  );
+    data.filter(row =>
+      headers.every(h =>
+        !filters[h.key] || row[h.key] === filters[h.key]
+      )
+    );
 
-  const handlePaste = (e, headers, data, setData) => {
-    const pasted = e.clipboardData.getData('text/plain');
-    const rows = pasted.trim().split('\n').map(r => r.split('\t'));
-    const updated = [...data];
-    rows.forEach(row => {
-      const newRow = {};
-      headers.forEach((h, i) => newRow[h.key] = row[i] || '');
-      updated.push(newRow);
-    });
-    setData(updated);
-    e.preventDefault();
-  };
-
-  const handleFileUpload = async (e, rowIdx, key, data, setData) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const accessToken = await getAccessToken();
-      const uploadUrl = getDownloadUrl(file.name);
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: file
-      });
-      if (!response.ok) throw new Error('Upload failed');
-      const updated = [...data];
-      updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
-      setData(updated);
-    } catch (err) {
-      console.error('Upload error:', err);
-      alert('Upload failed.');
-    }
-  };
-
-  const renderUploadTable = (headers, data, setData) => (
-    <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
-      <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
-      <button onClick={() => setData([...data, {}])} style={buttonStyle}>+ Add Row</button>
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            {headers.map(h => (
-              <th key={h.key} style={cellStyle}>
-                {h.label}
-                <br />
-                <input
-                  type="text"
-                  placeholder="Filter"
-                  value={filters[h.key] || ''}
-                  onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
-                  style={{ width: '95%' }}
-                />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, rowIdx) => (
-            <tr key={rowIdx}>
+  const renderUploadTable = (headers, data, setData) => {
+    const filteredData = getFilteredData(data, headers);
+    return (
+      <div>
+        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
+        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+          <thead style={{ backgroundColor: '#e8f4f8' }}>
+            <tr>
               {headers.map(h => (
-                <td key={h.key} style={cellStyle}>
-                  <input
-                    type="text"
-                    value={row[h.key] || ''}
-                    onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                    onDoubleClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
-                    style={{ width: '100%' }}
-                  />
-                  <input
-                    type="file"
-                    id={`file-${h.key}-${rowIdx}`}
-                    style={{ display: 'none' }}
-                    onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
-                  />
-                </td>
+                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
+                  {h.label}
+                  <br />
+                  <select
+                    value={filters[h.key] || ''}
+                    onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
+                  >
+                    <option value="">All</option>
+                    {[...new Set(data.map(row => row[h.key]).filter(Boolean))].map(val => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <br />
-      <button onClick={() => setView('dashboard')} style={buttonStyle}>← Go Back</button>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {filteredData.map((row, rowIdx) => (
+              <tr key={rowIdx}>
+                {headers.map(h => (
+                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '6px' }}>
+                    <input
+                      type="text"
+                      value={row[h.key] || ''}
+                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                      style={{ width: '100%' }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <br />
+        <button onClick={() => setView('dashboard')}>← Go Back</button>
+      </div>
+    );
+  };
 
   const headersMap = {
     cash_app: [
@@ -179,49 +137,31 @@ const App = () => {
     follow_up: [followUpData, setFollowUpData]
   };
 
-  const buttonStyle = {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#007C91',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    margin: '0.25rem',
-    cursor: 'pointer'
-  };
-
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '1rem'
-  };
-
-  const cellStyle = {
-    border: '1px solid #ccc',
-    padding: '8px'
-  };
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f4fafd', padding: '2rem', fontFamily: 'Segoe UI' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ color: '#007C91' }}>PWC Testing Automation</h1>
         <img src="https://logowik.com/content/uploads/images/merck-sharp-dohme-msd5762.logowik.com.webp" alt="MSD Logo" style={{ height: '50px' }} />
       </div>
+
       {view === 'signin' && (
         <div style={{ textAlign: 'center' }}>
-          <button onClick={signIn} style={buttonStyle}>Sign in with Microsoft</button>
+          <button onClick={signIn}>Sign in with Microsoft</button>
         </div>
       )}
+
       {view === 'home' && (
         <div>
           <p>Signed in as: <strong>{accounts[0]?.username}</strong></p>
           {Object.keys(headersMap).map(s => (
-            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }} style={buttonStyle}>
+            <button key={s} onClick={() => { setSection(s); setView('dashboard'); }} style={{ marginRight: '1rem' }}>
               {s.replace('_', ' ').toUpperCase()}
             </button>
           ))}
-          <button onClick={logout} style={buttonStyle}>Logout</button>
+          <button onClick={logout}>Logout</button>
         </div>
       )}
+
       {view === 'dashboard' && (
         <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }} style={{ maxWidth: '400px', marginTop: '2rem' }}>
           <label>Entity</label>
@@ -239,9 +179,10 @@ const App = () => {
             <option value="">-- Select --</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <button type="submit" style={buttonStyle}>Submit</button>
+          <button type="submit">Submit</button>
         </form>
       )}
+
       {view === 'upload' && renderUploadTable(headersMap[section], ...dataMap[section])}
     </div>
   );
