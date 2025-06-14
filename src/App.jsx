@@ -48,12 +48,11 @@ const App = () => {
 
   const handlePaste = (e, headers, data, setData) => {
     const pasted = e.clipboardData.getData('text/plain');
-    const rows = pasted.trim().split('
-').map(r => r.split('	'));
+    const rows = pasted.trim().split('\n').map(r => r.split('\t'));
     const updated = [...data];
     rows.forEach(row => {
       const newRow = {};
-      headers.forEach((h, i) => newRow[h.key] = row[i] || '';
+      headers.forEach((h, i) => newRow[h.key] = row[i] || '');
       updated.push(newRow);
     });
     setData(updated);
