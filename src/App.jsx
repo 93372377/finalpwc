@@ -14,11 +14,13 @@ const App = () => {
   const [invoiceData, setInvoiceData] = useState([]);
   const [poPodData, setPoPodData] = useState([]);
   const [followUpData, setFollowUpData] = useState([]);
-  const [previewIndex, setPreviewIndex] = useState(null);
-  const [previewFile, setPreviewFile] = useState(null);
 
-  const entityOptions = [1207, 3188, 1012];
-  const months = ['January', 'February', 'March'];
+  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
+    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
+    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
+  const months = ['January', 'February', 'March', "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -38,25 +40,24 @@ const App = () => {
     return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/Shared Documents/General/PWC Revenue Testing Automation/${fileName}:/content`;
   };
 
-  const isFileLink = (value) => typeof value === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(value);
-
-  const handlePaste = (e, headers, data, setData) => {
-    const pasted = e.clipboardData.getData('text/plain');
-    const rows = pasted.trim().split('\n').map(r => r.split('\t'));
-    const updated = [...data];
-    rows.forEach(row => {
-      const newRow = {};
-      headers.forEach((h, i) => newRow[h.key] = row[i] || '');
-      updated.push(newRow);
-    });
-    setData(updated);
-    e.preventDefault();
-  };
-
   const handleInputChange = (e, rowIdx, key, data, setData) => {
     const updated = [...data];
     updated[rowIdx] = { ...updated[rowIdx], [key]: e.target.value };
     setData(updated);
+  };
+
+  const handlePaste = (e, headers, data, setData) => {
+    const pasted = e.clipboardData.getData('text/plain');
+    const rows = pasted.trim().split('
+').map(r => r.split('	'));
+    const updated = [...data];
+    rows.forEach(row => {
+      const newRow = {};
+      headers.forEach((h, i) => newRow[h.key] = row[i] || '';
+      updated.push(newRow);
+    });
+    setData(updated);
+    e.preventDefault();
   };
 
   const handleFileUpload = async (e, rowIdx, key, data, setData) => {
@@ -67,121 +68,69 @@ const App = () => {
       const uploadUrl = getDownloadUrl(file.name);
       const response = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { Authorization: \`Bearer \${accessToken}\` },
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: file
       });
       if (!response.ok) throw new Error('Upload failed');
       const updated = [...data];
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
-      alert('✅ File uploaded to SharePoint!');
     } catch (err) {
       console.error('Upload error:', err);
-      alert('❌ Upload failed. Check console.');
+      alert('Upload failed.');
     }
   };
 
-  const togglePreview = (idx, fileName) => {
-    if (previewIndex === idx) {
-      setPreviewIndex(null);
-      setPreviewFile(null);
-    } else {
-      setPreviewIndex(idx);
-      setPreviewFile(fileName);
-    }
-  };
-
-  const getFilteredData = (data, headers) =>
-    data.filter(row =>
-      headers.every(h =>
-        !filters[h.key] || (row[h.key] ?? '').toLowerCase().includes(filters[h.key].toLowerCase())
-      )
-    );
-
-  const renderUploadTable = (headers, data, setData) => {
-    const filteredData = getFilteredData(data, headers);
-    return (
-      <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
-        <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
-        <div style={{ marginBottom: '1rem' }}>
-          <button onClick={() => setData([...data, {}])} style={buttonStyle}>+ Add Row</button>
-          <button onClick={logout} style={{ ...buttonStyle, float: 'right' }}>Logout</button>
-        </div>
-        <table style={tableStyle}>
-          <thead style={{ backgroundColor: '#e8f4f8' }}>
-            <tr>
+  const renderUploadTable = (headers, data, setData) => (
+    <div onPaste={(e) => handlePaste(e, headers, data, setData)}>
+      <h2 style={{ color: '#007C91' }}>{section.toUpperCase()}</h2>
+      <button onClick={() => setData([...data, {}])} style={buttonStyle}>+ Add Row</button>
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            {headers.map(h => (
+              <th key={h.key} style={cellStyle}>
+                {h.label}
+                <br />
+                <input
+                  type="text"
+                  placeholder="Filter"
+                  value={filters[h.key] || ''}
+                  onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
+                  style={{ width: '95%' }}
+                />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, rowIdx) => (
+            <tr key={rowIdx}>
               {headers.map(h => (
-                <th key={h.key} style={cellStyle}>
-                  {h.label}
-                  <br />
+                <td key={h.key} style={cellStyle}>
                   <input
                     type="text"
-                    placeholder="Filter"
-                    value={filters[h.key] || ''}
-                    onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}
-                    style={{ width: '95%' }}
+                    value={row[h.key] || ''}
+                    onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
+                    onDoubleClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                    style={{ width: '100%' }}
                   />
-                </th>
+                  <input
+                    type="file"
+                    id={`file-${h.key}-${rowIdx}`}
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                  />
+                </td>
               ))}
-              <th style={cellStyle}>Preview</th>
             </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row, rowIdx) => (
-              <React.Fragment key={rowIdx}>
-                <tr>
-                  {headers.map(h => (
-                    <td key={h.key} style={cellStyle}>
-                      {isFileLink(row[h.key]) ? (
-                        <a href={getDownloadUrl(row[h.key])} target="_blank" rel="noreferrer">
-                          {row[h.key]}
-                        </a>
-                      ) : (
-                        <input
-                          type="text"
-                          value={row[h.key] || ''}
-                          onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                          onDoubleClick={() => document.getElementById(\`file-\${h.key}-\${rowIdx}\`)?.click()}
-                          style={{ width: '100%' }}
-                        />
-                      )}
-                      <input
-                        type="file"
-                        id={\`file-\${h.key}-\${rowIdx}\`}
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
-                      />
-                    </td>
-                  ))}
-                  <td style={cellStyle}>
-                    {previewIndex === rowIdx ? (
-                      <button onClick={() => togglePreview(rowIdx, '')} style={buttonStyle}>Hide</button>
-                    ) : (
-                      <button onClick={() => togglePreview(rowIdx, Object.values(row).find(isFileLink))} style={buttonStyle}>View</button>
-                    )}
-                  </td>
-                </tr>
-                {previewIndex === rowIdx && previewFile && (
-                  <tr>
-                    <td colSpan={headers.length + 1}>
-                      <iframe
-                        src={getDownloadUrl(previewFile)}
-                        title="Preview"
-                        width="100%"
-                        height="400px"
-                      ></iframe>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-        <br />
-        <button onClick={() => setView('dashboard')} style={buttonStyle}>← Go Back</button>
-      </div>
-    );
-  };
+          ))}
+        </tbody>
+      </table>
+      <br />
+      <button onClick={() => setView('dashboard')} style={buttonStyle}>← Go Back</button>
+    </div>
+  );
 
   const headersMap = {
     cash_app: [
