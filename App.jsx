@@ -37,8 +37,9 @@ const App = () => {
   };
 
   const getDownloadUrl = (fileName) => {
-    const encodedPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
-    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}:/content`;
+    const basePath = encodeURI('Shared Documents/General/PWC Revenue Testing Automation');
+    const encodedFileName = encodeURIComponent(fileName);
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${basePath}/${encodedFileName}:/content`;
   };
 
   const handleFileUpload = async (e, rowIdx, key, data, setData) => {
@@ -73,6 +74,21 @@ const App = () => {
     headers.forEach(h => {
       uniqueOptions[h.key] = [...new Set(data.map(row => row[h.key] || ''))];
     });
+
+    const filteredData = data.filter(row =>
+      headers.every(h => !filters[h.key] || row[h.key] === filters[h.key])
+    );
+
+    return (
+      <div>
+        <button onClick={() => setData([...data, {}])}>+ Add Row</button>
+        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+          <thead style={{ backgroundColor: '#e8f4f8' }}>
+            <tr>
+              {headers.map(h => (
+                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
+                  {h.label}
+                  <br />
                   <select value={filters[h.key] || ''} onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}>
                     <option value="">All</option>
                     {uniqueOptions[h.key].map(opt => <option key={opt} value={opt}>{opt}</option>)}
