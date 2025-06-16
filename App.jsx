@@ -36,27 +36,47 @@ const App = () => {
     return response.accessToken;
   };
 
-  const getDownloadUrl = (fileName) => {
-    const encodedPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
-    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}:/content`;
+  const buildFileUrl = (fileName) => {
+    const segments = [
+      'Shared Documents',
+      'General',
+      'PWC Revenue Testing Automation'
+    ];
+    const encodedPath = segments.map(encodeURIComponent).join('/');
+    const encodedFileName = encodeURIComponent(fileName);
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}/${encodedFileName}:/content`;
   };
 
   const handleFileUpload = async (e, rowIdx, key, data, setData) => {
     const file = e.target.files[0];
     if (!file) return;
     const accessToken = await getAccessToken();
-    const uploadUrl = getDownloadUrl(file.name);
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: file
-    });
+    const uploadUrl = buildFileUrl(file.name);
+    let response;
+    try {
+      response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: file
+      });
+    } catch (err) {
+      alert(`❌ Upload request failed: ${err.message}`);
+      return;
+    }
     if (response.ok) {
       const updated = [...data];
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
     } else {
-      alert('❌ Upload failed.');
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = response.statusText || 'Unknown error';
+      }
+      const msg = `❌ Upload failed (${response.status} ${response.statusText}): ${errorText}\nURL: ${uploadUrl}`;
+      console.error(msg);
+      alert(msg);
     }
   };
 
@@ -104,7 +124,7 @@ const App = () => {
                 ))}
                 <td>
                   {Object.values(row).some(isFileLink) && (
-                    <button onClick={() => window.open(getDownloadUrl(Object.values(row).find(isFileLink)), '_blank')}>
+                    <button onClick={() => window.open(buildFileUrl(Object.values(row).find(isFileLink)), '_blank')}>
                       View
                     </button>
                   )}
