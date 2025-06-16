@@ -37,8 +37,9 @@ const App = () => {
   };
 
   const getDownloadUrl = (fileName) => {
-    const encodedPath = encodeURIComponent(`Shared Documents/General/PWC Revenue Testing Automation/${fileName}`);
-    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}:/content`;
+    const basePath = encodeURI('Shared Documents/General/PWC Revenue Testing Automation');
+    const encodedFileName = encodeURIComponent(fileName);
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${basePath}/${encodedFileName}:/content`;
   };
 
   const handleFileUpload = async (e, rowIdx, key, data, setData) => {
