@@ -15,12 +15,16 @@ const App = () => {
   const [followUpData, setFollowUpData] = useState([]);
   const [previewFile, setPreviewFile] = useState(null);
 
-  const entityOptions = [1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466, 3121, 477, 1456, 1287,
-    1396, 3168, 417, 3583, 1698, 1443, 1662, 1204, 478, 1029,
-    1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
-    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619];
-  const months = ['January', 'February', 'March', "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
+  const entityOptions = [
+    1207, 3188, 1012, 1194, 380, 519, 1209, 1310, 3124, 1180, 1467, 466,
+    3121, 477, 1456, 1287, 1396, 3168, 417, 3583, 1698, 1443, 1662, 1204,
+    478, 1029, 1471, 1177, 1253, 1580, 3592, 1285, 3225, 1101, 1395, 1203,
+    1247, 1083, 1216, 1190, 3325, 3143, 3223, 1619
+  ];
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
   const years = ['2025', '2026'];
 
   useEffect(() => {
@@ -32,36 +36,58 @@ const App = () => {
 
   const getAccessToken = async () => {
     const account = accounts[0];
-    const response = await instance.acquireTokenSilent({ ...loginRequest, account });
+    const response = await instance.acquireTokenSilent({
+      ...loginRequest,
+      account
+    });
     return response.accessToken;
   };
 
-  const getDownloadUrl = (fileName) => {
-    const basePath = encodeURI('Shared Documents/General/PWC Revenue Testing Automation');
+  const buildFileUrl = (fileName) => {
+    const segments = [
+      'Shared Documents',
+      'General',
+      'PWC Revenue Testing Automation'
+    ];
+    const encodedPath = segments.map(encodeURIComponent).join('/');
     const encodedFileName = encodeURIComponent(fileName);
-    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${basePath}/${encodedFileName}:/content`;
+    return `https://graph.microsoft.com/v1.0/sites/collaboration.merck.com:/sites/gbsicprague:/drive/root:/${encodedPath}/${encodedFileName}:/content`;
   };
 
   const handleFileUpload = async (e, rowIdx, key, data, setData) => {
     const file = e.target.files[0];
     if (!file) return;
     const accessToken = await getAccessToken();
-    const uploadUrl = getDownloadUrl(file.name);
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${accessToken}` },
-      body: file
-    });
+    const uploadUrl = buildFileUrl(file.name);
+    let response;
+    try {
+      response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: file
+      });
+    } catch (err) {
+      alert(`❌ Upload request failed: ${err.message}`);
+      return;
+    }
     if (response.ok) {
       const updated = [...data];
       updated[rowIdx] = { ...updated[rowIdx], [key]: file.name };
       setData(updated);
     } else {
-      alert('❌ Upload failed.');
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = response.statusText || 'Unknown error';
+      }
+      alert(`❌ Upload failed (${response.status} ${response.statusText}): ${errorText}`);
     }
   };
 
-  const isFileLink = (val) => typeof val === 'string' && /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(val);
+  const isFileLink = (val) =>
+    typeof val === 'string' &&
+    /\.(pdf|docx|xlsx|xls|png|jpg|jpeg|txt)$/i.test(val);
 
   const handleInputChange = (e, rowIdx, key, data, setData) => {
     const updated = [...data];
@@ -71,27 +97,45 @@ const App = () => {
 
   const renderUploadTable = (headers, data, setData) => {
     const uniqueOptions = {};
-    headers.forEach(h => {
-      uniqueOptions[h.key] = [...new Set(data.map(row => row[h.key] || ''))];
+    headers.forEach((h) => {
+      uniqueOptions[h.key] = [...new Set(data.map((row) => row[h.key] || ''))];
     });
 
-    const filteredData = data.filter(row =>
-      headers.every(h => !filters[h.key] || row[h.key] === filters[h.key])
+    const filteredData = data.filter((row) =>
+      headers.every((h) => !filters[h.key] || row[h.key] === filters[h.key])
     );
 
     return (
       <div>
         <button onClick={() => setData([...data, {}])}>+ Add Row</button>
-        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
+        <table
+          style={{
+            width: '100%',
+            marginTop: '1rem',
+            borderCollapse: 'collapse'
+          }}
+        >
           <thead style={{ backgroundColor: '#e8f4f8' }}>
             <tr>
-              {headers.map(h => (
-                <th key={h.key} style={{ border: '1px solid #ccc', padding: '8px' }}>
+              {headers.map((h) => (
+                <th
+                  key={h.key}
+                  style={{ border: '1px solid #ccc', padding: '8px' }}
+                >
                   {h.label}
                   <br />
-                  <select value={filters[h.key] || ''} onChange={(e) => setFilters({ ...filters, [h.key]: e.target.value })}>
-                    <option value="">All</option>
-                    {uniqueOptions[h.key].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  <select
+                    value={filters[h.key] || ''}
+                    onChange={(e) =>
+                      setFilters({ ...filters, [h.key]: e.target.value })
+                    }
+                  >
+                    <option value=''>All</option>
+                    {uniqueOptions[h.key].map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                   </select>
                 </th>
               ))}
@@ -101,26 +145,46 @@ const App = () => {
           <tbody>
             {filteredData.map((row, rowIdx) => (
               <tr key={rowIdx}>
-                {headers.map(h => (
-                  <td key={h.key} style={{ border: '1px solid #ccc', padding: '4px' }}>
+                {headers.map((h) => (
+                  <td
+                    key={h.key}
+                    style={{ border: '1px solid #ccc', padding: '4px' }}
+                  >
                     <input
-                      type="text"
+                      type='text'
                       value={row[h.key] || ''}
-                      onChange={(e) => handleInputChange(e, rowIdx, h.key, data, setData)}
-                      onDoubleClick={() => document.getElementById(`file-${h.key}-${rowIdx}`)?.click()}
+                      onChange={(e) =>
+                        handleInputChange(e, rowIdx, h.key, data, setData)
+                      }
+                      onDoubleClick={() =>
+                        document
+                          .getElementById(`file-${h.key}-${rowIdx}`)
+                          ?.click()
+                      }
                       style={{ width: '100%' }}
                     />
                     <input
-                      type="file"
+                      type='file'
                       id={`file-${h.key}-${rowIdx}`}
                       style={{ display: 'none' }}
-                      onChange={(e) => handleFileUpload(e, rowIdx, h.key, data, setData)}
+                      onChange={(e) =>
+                        handleFileUpload(e, rowIdx, h.key, data, setData)
+                      }
                     />
                   </td>
                 ))}
                 <td>
                   {Object.values(row).some(isFileLink) && (
-                    <button onClick={() => window.open(getDownloadUrl(Object.values(row).find(isFileLink)), '_blank')}>
+                    <button
+                      onClick={() =>
+                        window.open(
+                          buildFileUrl(
+                            Object.values(row).find(isFileLink)
+                          ),
+                          '_blank'
+                        )
+                      }
+                    >
                       View
                     </button>
                   )}
@@ -185,12 +249,20 @@ const App = () => {
   return (
     <div style={{ padding: '2rem', fontFamily: 'Segoe UI' }}>
       <h1>PWC Testing Automation</h1>
-      {view === 'signin' && <button onClick={signIn}>Sign in with Microsoft</button>}
+      {view === 'signin' && (
+        <button onClick={signIn}>Sign in with Microsoft</button>
+      )}
       {view === 'home' && (
         <div>
           <p>Welcome, {accounts[0]?.username}</p>
-          {Object.keys(headersMap).map(key => (
-            <button key={key} onClick={() => { setSection(key); setView('dashboard'); }}>
+          {Object.keys(headersMap).map((key) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSection(key);
+                setView('dashboard');
+              }}
+            >
               {key.replace('_', ' ').toUpperCase()}
             </button>
           ))}
@@ -198,14 +270,44 @@ const App = () => {
         </div>
       )}
       {view === 'dashboard' && (
-        <form onSubmit={(e) => { e.preventDefault(); if (entity && month && year) setView('upload'); }}>
-          <select value={entity} onChange={(e) => setEntity(e.target.value)}><option>-- Entity --</option>{entityOptions.map(v => <option key={v}>{v}</option>)}</select>
-          <select value={month} onChange={(e) => setMonth(e.target.value)}><option>-- Month --</option>{months.map(m => <option key={m}>{m}</option>)}</select>
-          <select value={year} onChange={(e) => setYear(e.target.value)}><option>-- Year --</option>{years.map(y => <option key={y}>{y}</option>)}</select>
-          <button type="submit">Submit</button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (entity && month && year) setView('upload');
+          }}
+        >
+          <select
+            value={entity}
+            onChange={(e) => setEntity(e.target.value)}
+          >
+            <option>-- Entity --</option>
+            {entityOptions.map((v) => (
+              <option key={v}>{v}</option>
+            ))}
+          </select>
+          <select
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          >
+            <option>-- Month --</option>
+            {months.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          >
+            <option>-- Year --</option>
+            {years.map((y) => (
+              <option key={y}>{y}</option>
+            ))}
+          </select>
+          <button type='submit'>Submit</button>
         </form>
       )}
-      {view === 'upload' && renderUploadTable(headersMap[section], ...dataMap[section])}
+      {view === 'upload' &&
+        renderUploadTable(headersMap[section], ...dataMap[section])}
     </div>
   );
 };
